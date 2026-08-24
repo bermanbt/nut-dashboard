@@ -239,22 +239,17 @@
     position: relative;
     width: 56px;
     height: 56px;
-    border-radius: 50%;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .ring::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: conic-gradient(var(--ring-color, var(--accent2)) calc(var(--pct, 0) * 1%), var(--bg3) 0);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
-    transition: background 0.6s ease;
+  .ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ring-track { stroke: var(--bg3); }
+  .ring-progress {
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;
   }
 
   .ring-value {
@@ -424,11 +419,11 @@
   .details-panel { display: none; padding: 0 24px 20px; border-top: 1px solid var(--border); }
   .details-panel.open { display: block; }
 
-  .details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-top: 14px; }
-  .detail-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 4px; transition: background 0.15s; }
+  .details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; margin-top: 14px; }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 4px; transition: background 0.15s; min-width: 0; }
   .detail-row:hover { background: var(--surface-hover); }
-  .detail-key { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.3px; }
-  .detail-val { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--text); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail-key { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
+  .detail-val { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--text); text-align: right; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 2; }
 
   .error-state { padding: 36px 24px; text-align: center; }
   .error-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.5; }
@@ -583,6 +578,26 @@ function ringColor(pct, cls) {
   return 'var(--accent2)';
 }
 
+// SVG stroke-circle ring -- crisper than a conic-gradient/mask trick, which
+// rasterizes and looks soft/aliased at this size in most browsers.
+const RING_R = 25;
+const RING_C = 2 * Math.PI * RING_R;
+
+function ringOffset(pct) {
+  const p = Math.max(0, Math.min(100, isNaN(pct) ? 0 : pct));
+  return (RING_C * (1 - p / 100)).toFixed(2);
+}
+
+function ringSvg(pct, color) {
+  return `
+    <svg viewBox="0 0 56 56">
+      <circle class="ring-track" cx="28" cy="28" r="${RING_R}" fill="none" stroke-width="6"/>
+      <circle class="ring-progress" cx="28" cy="28" r="${RING_R}" fill="none" stroke-width="6"
+        style="stroke:${color}" stroke-dasharray="${RING_C.toFixed(2)}"
+        stroke-dashoffset="${ringOffset(pct)}" transform="rotate(-90 28 28)"/>
+    </svg>`;
+}
+
 const METRIC_DEFS = [
   { key: 'battery.charge', label: 'Battery', fmt: (v) => v + '%', color: (v) => { const p = parseFloat(v); if (p <= 20) return 'danger'; if (p <= 50) return 'warn'; return 'green'; } },
   { key: '__runtime', label: 'Runtime', fmt: (v, vars) => formatRuntime(vars['battery.runtime']), color: () => 'accent', always: true },
@@ -622,7 +637,7 @@ function overviewCardHtml(ups) {
   if (ups.status === 'error') {
     return `
     <div class="overview-card offline" id="ovcard-${ups.id}" data-shape="error" onclick="scrollToCard('${ups.id}')">
-      <div class="ring" style="--pct:0; --ring-color: var(--danger);"><span class="ring-value">--</span></div>
+      <div class="ring">${ringSvg(0, 'var(--danger)')}<span class="ring-value">--</span></div>
       <div class="overview-body">
         <div class="overview-title">${ups.label}</div>
         <div class="overview-meta"><span class="overview-status offline">Unreachable</span></div>
@@ -635,7 +650,7 @@ function overviewCardHtml(ups) {
   const runtime = formatRuntime(v['battery.runtime']);
   return `
   <div class="overview-card ${status.cls}" id="ovcard-${ups.id}" data-shape="ok" onclick="scrollToCard('${ups.id}')">
-    <div class="ring" style="--pct:${isNaN(batt) ? 0 : batt}; --ring-color:${ringColor(batt, status.cls)};">
+    <div class="ring">${ringSvg(batt, ringColor(batt, status.cls))}
       <span class="ring-value">${isNaN(batt) ? '—' : batt + '%'}</span>
     </div>
     <div class="overview-body">
@@ -661,8 +676,9 @@ function updateOverviewCardEl(node, ups) {
 
   node.className = 'overview-card ' + status.cls;
   const ring = node.querySelector('.ring');
-  ring.style.setProperty('--pct', isNaN(batt) ? 0 : batt);
-  ring.style.setProperty('--ring-color', ringColor(batt, status.cls));
+  const progress = ring.querySelector('.ring-progress');
+  progress.setAttribute('stroke-dashoffset', ringOffset(batt));
+  progress.style.stroke = ringColor(batt, status.cls);
   ring.querySelector('.ring-value').textContent = isNaN(batt) ? '—' : batt + '%';
 
   node.querySelector('.overview-title').textContent = ups.label;
