@@ -8,13 +8,13 @@ services:
     environment:
       - UPS1_HOST=localhost
       - UPS1_PORT=3493
-      - UPS1_NAME=Racked-UPS
+      - UPS1_NAME=your-ups-name-1
       - UPS1_LABEL=Rack UPS
-      - UPS1_USER=local_mon
-      - UPS1_PASSWORD=[removed]
-      - UPS2_HOST=10.0.1.3
+      - UPS1_USER=monuser
+      - UPS1_PASSWORD=changeme
+      - UPS2_HOST=192.168.1.20
       - UPS2_PORT=3493
-      - UPS2_NAME=ups
-      - UPS2_LABEL=NAS/Lab UPS
+      - UPS2_NAME=your-ups-name-2
+      - UPS2_LABEL=NAS UPS
       - UPS2_USER=monuser
-      - UPS2_PASSWORD=[removed]
+      - UPS2_PASSWORD=changeme

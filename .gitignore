@@ -1,2 +1,6 @@
 node_modules/
 npm-debug.log
+
+# Real deployment config with actual hosts/credentials -- copy
+# docker-compose.example.yml to docker-compose.yml and fill it in.
+docker-compose.yml
