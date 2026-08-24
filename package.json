@@ -1,0 +1,16 @@
+{
+  "name": "nut-dashboard",
+  "version": "1.0.0",
+  "description": "Web dashboard for monitoring UPS devices via Network UPS Tools (NUT)",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
